@@ -8,7 +8,9 @@ num_iterations = 5
 
 targets_list = ['Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'O']
 targets_mapping = {}
-for i,x in enumerate(targets_list): targets_mapping[x] = i
+for i, x in enumerate(targets_list):
+    targets_mapping[x] = i
+
 
 class Layer:
     def forward(self, input):
@@ -41,19 +43,46 @@ class Layer:
         ''' Update this layers parameter if it has or do nothing
         '''
 
-class Sigmoid(Layer):
-    def forward(self, input):
-        return 1.0 / (1.0 + np.exp(-input))
-
-    def backward(self, input, output, d_output):
-        pass
 
 class ReLU(Layer):
     def forward(self, input):
+        # BEGIN_LAB
         return np.maximum(input, 0)
+        # END_LAB
 
     def backward(self, input, output, d_output):
+        # BEGIN_LAB
         return d_output * (input > 0)
+        # END_LAB
+
+class FullyConnect(Layer):
+    def __init__(self, in_dim, out_dim):
+        self.w = np.random.randn(out_dim, in_dim) * np.sqrt(2.0 / in_dim)
+        self.b = np.zeros(out_dim)
+        self.dw = np.zeros((out_dim, in_dim))
+        self.db = np.zeros(out_dim)
+
+    def forward(self, input):
+        # BEGIN_LAB
+        return np.dot(input, self.w.T) + self.b
+        # END_LAB
+
+    def backward(self, input, output, d_output):
+        batch_size = input.shape[0]
+        in_diff = None
+        # BEGIN_LAB, compute in_diff/dw/db here
+        in_diff = np.dot(d_output, self.w)
+        self.dw = np.dot(d_output.T, input)
+        self.db = np.sum(d_output, axis=0)
+        # END_LAB
+        # Normalize dw/db by batch size
+        self.dw = self.dw / float(batch_size)
+        self.db = self.db / float(batch_size)
+        return in_diff
+
+    def update(self):
+        self.w = self.w - self.learning_rate * self.dw
+        self.b = self.b - self.learning_rate * self.db
 
 class Softmax(Layer):
     def forward(self, input):
@@ -66,31 +95,6 @@ class Softmax(Layer):
             the activation(input) of softmax
         '''
         return d_output
-
-class FullyConnect(Layer):
-    def __init__(self, in_dim, out_dim):
-        self.w = np.random.randn(out_dim, in_dim) * np.sqrt(2.0 / in_dim)
-        self.b = np.zeros(out_dim)
-        self.dw = np.zeros((out_dim, in_dim))
-        self.db = np.zeros(out_dim)
-
-    def forward(self, input):
-        return np.dot(input, self.w.T) + self.b
-
-    def backward(self, input, output, d_output):
-        batch_size = input.shape[0]
-        in_diff = None
-        in_diff = np.dot(d_output, self.w)
-        self.dw = np.dot(d_output.T, input)
-        self.db = np.sum(d_output, axis=0)
-        # Normalize by batch size
-        self.dw = self.dw / float(batch_size)
-        self.db = self.db / float(batch_size)
-        return in_diff
-
-    def update(self):
-        self.w = self.w - self.learning_rate * self.dw
-        self.b = self.b - self.learning_rate * self.db
 
 class DNN:
     def __init__(self, in_dim, out_dim, hidden_dim, num_hidden):
@@ -124,15 +128,16 @@ class DNN:
         '''
         self.backward_buf = [None] * len(self.layers)
         self.backward_buf[len(self.layers) - 1] = grad
-        for i in range(len(self.layers)-2, -1, -1):
+        for i in range(len(self.layers) - 2, -1, -1):
             grad = self.layers[i].backward(self.forward_buf[i],
-                                           self.forward_buf[i+1],
-                                           self.backward_buf[i+1])
+                                           self.forward_buf[i + 1],
+                                           self.backward_buf[i + 1])
             self.backward_buf[i] = grad
 
     def update(self):
         for layer in self.layers:
             layer.update()
+
 
 def one_hot(labels, total_label):
     output = np.zeros((labels.shape[0], total_label))
@@ -140,8 +145,10 @@ def one_hot(labels, total_label):
         output[i][labels[i]] = 1.0
     return output
 
+
 def train(dnn):
-    utt2feat, utt2target = read_feats_and_targets('train/feats.scp', 'train/text')
+    utt2feat, utt2target = read_feats_and_targets('train/feats.scp',
+                                                  'train/text')
     inputs, labels = build_input(targets_mapping, utt2feat, utt2target)
     num_samples = inputs.shape[0]
     # Shuffle data
@@ -169,8 +176,10 @@ def train(dnn):
             print('Epoch {} num_samples {} loss {}'.format(i, cur, loss))
             cur += batch_size
 
+
 def test(dnn):
-    utt2feat, utt2target = read_feats_and_targets('test/feats.scp', 'test/text')
+    utt2feat, utt2target = read_feats_and_targets('test/feats.scp',
+                                                  'test/text')
     total = len(utt2feat)
     correct = 0
     for utt in utt2feat:
@@ -185,6 +194,7 @@ def test(dnn):
         print('label: {} predict: {}'.format(t, predict))
     print('Acc: {}'.format(float(correct) / total))
 
+
 def main():
     np.random.seed(777)
     # We splice the raw feat with left 5 frames and right 5 frames
@@ -193,6 +203,7 @@ def main():
     dnn.set_learning_rate(1e-2)
     train(dnn)
     test(dnn)
+
 
 if __name__ == '__main__':
     main()

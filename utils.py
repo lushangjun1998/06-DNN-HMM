@@ -1,6 +1,7 @@
 import kaldi_io
 import numpy as np
 
+
 def read_all_data(feat_scp):
     feat_fid = open(feat_scp, 'r')
     feat = feat_fid.readlines()
@@ -13,6 +14,7 @@ def read_all_data(feat_scp):
         mat_list.append(mat)
     return np.concatenate(mat_list, axis=0)
 
+
 def read_feats_and_targets(feat_scp, text_file):
     feat_fid = open(feat_scp, 'r')
     text_fid = open(text_file, 'r')
@@ -20,7 +22,7 @@ def read_feats_and_targets(feat_scp, text_file):
     text = text_fid.readlines()
     feat_fid.close()
     text_fid.close()
-    assert(len(feat) == len(text))
+    assert (len(feat) == len(text))
     dict_utt2feat = {}
     dict_utt2target = {}
     for i in range(len(feat)):
@@ -30,6 +32,7 @@ def read_feats_and_targets(feat_scp, text_file):
         dict_utt2feat[utt_id1] = ark
         dict_utt2target[utt_id2] = target
     return dict_utt2feat, dict_utt2target
+
 
 def get_feats(target, dic_utt2feat, dict_target2utt):
     """ Read feats for a specific target
@@ -45,11 +48,13 @@ def get_feats(target, dic_utt2feat, dict_target2utt):
         mat_list.append(mat)
     return np.concatenate(mat_list, axis=0)
 
+
 def cmvn(mat):
     mean = np.mean(mat, axis=0)
     var = np.var(mat, axis=0)
     mat = (mat - mean) / var
     return mat
+
 
 def splice(feats, left_context, right_context):
     ''' Splice feature
@@ -82,6 +87,7 @@ def splice(feats, left_context, right_context):
         outputs.append(splice_feats)
     return np.vstack(outputs)
 
+
 def build_input(targets_mapping, utt2feat, utt2target):
     mat_list = []
     label_list = []
@@ -92,6 +98,5 @@ def build_input(targets_mapping, utt2feat, utt2target):
         mat = kaldi_io.read_mat(ark)
         mat = splice(mat, 5, 5)
         mat_list.append(mat)
-        label_list.extend([targets_mapping[t]]*mat.shape[0])
+        label_list.extend([targets_mapping[t]] * mat.shape[0])
     return np.concatenate(mat_list, axis=0), np.array(label_list)
-
