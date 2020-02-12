@@ -4,8 +4,6 @@ import numpy as np
 import kaldi_io
 from utils import *
 
-num_iterations = 5
-
 targets_list = ['Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'O']
 targets_mapping = {}
 for i, x in enumerate(targets_list):
@@ -47,13 +45,12 @@ class Layer:
 class ReLU(Layer):
     def forward(self, input):
         # BEGIN_LAB
-        return np.maximum(input, 0)
         # END_LAB
 
     def backward(self, input, output, d_output):
         # BEGIN_LAB
-        return d_output * (input > 0)
         # END_LAB
+
 
 class FullyConnect(Layer):
     def __init__(self, in_dim, out_dim):
@@ -64,25 +61,22 @@ class FullyConnect(Layer):
 
     def forward(self, input):
         # BEGIN_LAB
-        return np.dot(input, self.w.T) + self.b
         # END_LAB
 
     def backward(self, input, output, d_output):
         batch_size = input.shape[0]
         in_diff = None
         # BEGIN_LAB, compute in_diff/dw/db here
-        in_diff = np.dot(d_output, self.w)
-        self.dw = np.dot(d_output.T, input)
-        self.db = np.sum(d_output, axis=0)
         # END_LAB
         # Normalize dw/db by batch size
-        self.dw = self.dw / float(batch_size)
-        self.db = self.db / float(batch_size)
+        self.dw = self.dw / batch_size
+        self.db = self.db / batch_size
         return in_diff
 
     def update(self):
         self.w = self.w - self.learning_rate * self.dw
         self.b = self.b - self.learning_rate * self.db
+
 
 class Softmax(Layer):
     def forward(self, input):
@@ -95,6 +89,7 @@ class Softmax(Layer):
             the activation(input) of softmax
         '''
         return d_output
+
 
 class DNN:
     def __init__(self, in_dim, out_dim, hidden_dim, num_hidden):
